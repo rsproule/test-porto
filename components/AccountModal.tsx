@@ -90,7 +90,7 @@ export function AccountModal({ visible, onClose, account }: AccountModalProps) {
               className={`${copied ? 'bg-green-500' : 'bg-blue-500'} items-center rounded-lg p-3`}
               activeOpacity={0.7}>
               <Text className="font-semibold text-white">
-                {copied ? '✓ Copied!' : '📋 Copy Address'}
+                {copied ? '✓ Copied!' : 'Copy Address'}
               </Text>
             </TouchableOpacity>
           </View>

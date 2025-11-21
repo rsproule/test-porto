@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useAccount, useConnectorClient } from 'wagmi';
+import { useAccount, useConnectorClient, useWalletClient } from 'wagmi';
 import { wrapFetchWithPayment } from 'x402-fetch';
 
 export function X402Example() {
   const { isConnected } = useAccount();
   const { data: client } = useConnectorClient();
   const [loading, setLoading] = useState(false);
-  const [url, setUrl] = useState('https://api.example.com/paid-endpoint');
+  const [url, setUrl] = useState('https://pay.lnpay.ai/res');
   const [response, setResponse] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { data: signer } = useWalletClient();
 
   const handleRequest = async () => {
     if (!isConnected || !client) {
@@ -23,7 +24,7 @@ export function X402Example() {
       setResponse(null);
 
       // Wrap fetch with payment handling using Wagmi client
-      const fetchWithPay = wrapFetchWithPayment(fetch, client);
+      const fetchWithPay = wrapFetchWithPayment(fetch, signer);
 
       // Make the request
       const res = await fetchWithPay(url, {
@@ -71,7 +72,7 @@ export function X402Example() {
         onPress={handleRequest}
         disabled={loading || !isConnected}
         className={`mb-6 items-center rounded-lg p-4 ${
-          loading || !isConnected ? 'bg-gray-300' : 'bg-purple-500'
+          loading || !isConnected ? 'bg-gray-300' : 'bg-blue-500'
         }`}
         activeOpacity={0.7}>
         {loading ? (
