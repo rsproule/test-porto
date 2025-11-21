@@ -24,17 +24,33 @@ export function AccountModal({ visible, onClose, account }: AccountModalProps) {
   const fetchBalance = async () => {
     try {
       setLoading(true);
+      
+      // USDC contract address on Base
+      const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+      
+      // Encode balanceOf(address) call
+      // Function signature: balanceOf(address) = 0x70a08231
+      const paddedAddress = account.slice(2).padStart(64, '0');
+      const data = `0x70a08231${paddedAddress}`;
+      
+      // Call USDC contract
       const balanceHex = await porto.provider.request({
-        method: 'eth_getBalance',
-        params: [account, 'latest'],
+        method: 'eth_call',
+        params: [
+          {
+            to: USDC_ADDRESS,
+            data: data,
+          },
+          'latest',
+        ],
       }) as string;
       
-      // Convert hex to ETH
-      const balanceWei = BigInt(balanceHex);
-      const balanceEth = Number(balanceWei) / 1e18;
-      setBalance(balanceEth.toFixed(4));
+      // Convert hex to USDC (6 decimals)
+      const balanceRaw = BigInt(balanceHex);
+      const balanceUsdc = Number(balanceRaw) / 1e6;
+      setBalance(balanceUsdc.toFixed(2));
     } catch (err) {
-      console.error('Failed to fetch balance:', err);
+      console.error('Failed to fetch USDC balance:', err);
       setBalance('Error');
     } finally {
       setLoading(false);
@@ -66,7 +82,7 @@ export function AccountModal({ visible, onClose, account }: AccountModalProps) {
         >
           <View className="mb-4">
             <Text className="text-xl font-bold mb-1">Account Details</Text>
-            <Text className="text-gray-600 text-sm">Your Porto Wallet</Text>
+            <Text className="text-gray-600 text-sm">Your Porto Wallet on Base</Text>
           </View>
 
           <View className="bg-gray-100 p-4 rounded-lg mb-4">
@@ -87,22 +103,22 @@ export function AccountModal({ visible, onClose, account }: AccountModalProps) {
           </View>
 
           <View className="bg-gray-100 p-4 rounded-lg mb-4">
-            <Text className="text-xs text-gray-600 mb-2">Balance</Text>
+            <Text className="text-xs text-gray-600 mb-2">USDC Balance (Base)</Text>
             {loading ? (
               <ActivityIndicator />
             ) : (
               <Text className="text-2xl font-bold text-gray-900">
-                {balance ? `${balance} ETH` : 'Error loading'}
+                {balance ? `$${balance}` : 'Error loading'}
               </Text>
             )}
           </View>
 
           <View className="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-200">
             <Text className="text-sm font-semibold text-blue-900 mb-1">
-              💰 Need funds?
+              💰 Need USDC?
             </Text>
             <Text className="text-xs text-blue-800">
-              Use a faucet to get test ETH for your wallet
+              Bridge USDC to Base or use a faucet to get test USDC
             </Text>
           </View>
 

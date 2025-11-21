@@ -97,13 +97,6 @@ export function X402Example() {
           </View>
         </View>
       )}
-
-      <View className="mt-auto rounded-lg border border-blue-200 bg-blue-50 p-4">
-        <Text className="mb-2 text-sm font-semibold text-blue-900">💡 How it works</Text>
-        <Text className="mb-1 text-xs text-blue-800">• API returns 402 Payment Required</Text>
-        <Text className="mb-1 text-xs text-blue-800">• Porto wallet signs the payment</Text>
-        <Text className="text-xs text-blue-800">• Request retries with payment header</Text>
-      </View>
     </View>
   );
 }
