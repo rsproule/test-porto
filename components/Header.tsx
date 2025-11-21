@@ -1,36 +1,24 @@
-import { useAccount } from 'lib/AccountContext';
-import { usePorto } from 'lib/PortoProvider';
 import React, { useState } from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { AccountModal } from './AccountModal';
 
 export function Header() {
-  const porto = usePorto();
-  const { account, setAccount } = useAccount();
-  const [loading, setLoading] = useState(false);
+  const { address, isConnected } = useAccount();
+  const { connect, connectors, isPending } = useConnect();
+  const { disconnect } = useDisconnect();
   const [showModal, setShowModal] = useState(false);
 
-  const handleConnect = async () => {
-    try {
-      setLoading(true);
-
-      const accounts = (await porto.provider.request({
-        method: 'eth_requestAccounts',
-      })) as string[];
-
-      if (accounts && accounts.length > 0) {
-        setAccount(accounts[0]);
-      }
-    } catch (err) {
-      console.error('Porto connection error:', err);
-    } finally {
-      setLoading(false);
+  const handleConnect = () => {
+    const portoConnector = connectors[0]; // Porto connector
+    if (portoConnector) {
+      connect({ connector: portoConnector });
     }
   };
 
   const handleDisconnect = () => {
-    setAccount(null);
+    disconnect();
     setShowModal(false);
   };
 
@@ -43,13 +31,13 @@ export function Header() {
         <View className="flex-row items-center justify-between px-4 py-3">
           <Text className="text-xl font-bold">Porto X402</Text>
 
-          {!account ? (
+          {!isConnected ? (
             <TouchableOpacity
               onPress={handleConnect}
-              disabled={loading}
+              disabled={isPending}
               className="rounded bg-blue-500 px-4 py-2"
               activeOpacity={0.7}>
-              {loading ? (
+              {isPending ? (
                 <ActivityIndicator size="small" color="white" />
               ) : (
                 <Text className="font-semibold text-white">Connect</Text>
@@ -62,7 +50,7 @@ export function Header() {
                 className="rounded bg-green-100 px-3 py-2"
                 activeOpacity={0.7}>
                 <Text className="font-mono text-xs text-green-800">
-                  {account.slice(0, 6)}...{account.slice(-4)}
+                  {address?.slice(0, 6)}...{address?.slice(-4)}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -76,8 +64,8 @@ export function Header() {
         </View>
       </SafeAreaView>
 
-      {account && (
-        <AccountModal visible={showModal} onClose={() => setShowModal(false)} account={account} />
+      {address && (
+        <AccountModal visible={showModal} onClose={() => setShowModal(false)} account={address} />
       )}
     </>
   );

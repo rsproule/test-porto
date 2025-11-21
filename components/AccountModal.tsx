@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { usePorto } from 'lib/PortoProvider';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Modal, Text, TouchableOpacity, View } from 'react-native';
+import { useConnectorClient } from 'wagmi';
 
 interface AccountModalProps {
   visible: boolean;
@@ -10,31 +10,34 @@ interface AccountModalProps {
 }
 
 export function AccountModal({ visible, onClose, account }: AccountModalProps) {
-  const porto = usePorto();
+  const { data: client } = useConnectorClient();
   const [balance, setBalance] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (visible && account) {
+    if (visible && account && client) {
       fetchBalance();
     }
-  }, [visible, account]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, account, client]);
 
   const fetchBalance = async () => {
+    if (!client) return;
+
     try {
       setLoading(true);
-      
+
       // USDC contract address on Base
       const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
-      
+
       // Encode balanceOf(address) call
       // Function signature: balanceOf(address) = 0x70a08231
       const paddedAddress = account.slice(2).padStart(64, '0');
-      const data = `0x70a08231${paddedAddress}`;
-      
-      // Call USDC contract
-      const balanceHex = await porto.provider.request({
+      const data = `0x70a08231${paddedAddress}` as `0x${string}`;
+
+      // Call USDC contract using Wagmi client
+      const balanceHex = (await client.request({
         method: 'eth_call',
         params: [
           {
@@ -43,8 +46,8 @@ export function AccountModal({ visible, onClose, account }: AccountModalProps) {
           },
           'latest',
         ],
-      }) as string;
-      
+      })) as string;
+
       // Convert hex to USDC (6 decimals)
       const balanceRaw = BigInt(balanceHex);
       const balanceUsdc = Number(balanceRaw) / 1e6;
@@ -64,46 +67,36 @@ export function AccountModal({ visible, onClose, account }: AccountModalProps) {
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <TouchableOpacity 
-        className="flex-1 bg-black/50 justify-center items-center"
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableOpacity
+        className="flex-1 items-center justify-center bg-black/50"
         activeOpacity={1}
-        onPress={onClose}
-      >
-        <TouchableOpacity 
-          className="bg-white rounded-2xl p-6 mx-4 w-11/12 max-w-md"
+        onPress={onClose}>
+        <TouchableOpacity
+          className="mx-4 w-11/12 max-w-md rounded-2xl bg-white p-6"
           activeOpacity={1}
-          onPress={(e) => e.stopPropagation()}
-        >
+          onPress={(e) => e.stopPropagation()}>
           <View className="mb-4">
-            <Text className="text-xl font-bold mb-1">Account Details</Text>
-            <Text className="text-gray-600 text-sm">Your Porto Wallet on Base</Text>
+            <Text className="mb-1 text-xl font-bold">Account Details</Text>
+            <Text className="text-sm text-gray-600">Your Porto Wallet on Base</Text>
           </View>
 
-          <View className="bg-gray-100 p-4 rounded-lg mb-4">
-            <Text className="text-xs text-gray-600 mb-2">Address</Text>
-            <Text className="text-sm font-mono text-gray-900 mb-3">
-              {account}
-            </Text>
-            
+          <View className="mb-4 rounded-lg bg-gray-100 p-4">
+            <Text className="mb-2 text-xs text-gray-600">Address</Text>
+            <Text className="mb-3 font-mono text-sm text-gray-900">{account}</Text>
+
             <TouchableOpacity
               onPress={handleCopy}
-              className={`${copied ? 'bg-green-500' : 'bg-blue-500'} p-3 rounded-lg items-center`}
-              activeOpacity={0.7}
-            >
-              <Text className="text-white font-semibold">
+              className={`${copied ? 'bg-green-500' : 'bg-blue-500'} items-center rounded-lg p-3`}
+              activeOpacity={0.7}>
+              <Text className="font-semibold text-white">
                 {copied ? '✓ Copied!' : '📋 Copy Address'}
               </Text>
             </TouchableOpacity>
           </View>
 
-          <View className="bg-gray-100 p-4 rounded-lg mb-4">
-            <Text className="text-xs text-gray-600 mb-2">USDC Balance (Base)</Text>
+          <View className="mb-4 rounded-lg bg-gray-100 p-4">
+            <Text className="mb-2 text-xs text-gray-600">USDC Balance (Base)</Text>
             {loading ? (
               <ActivityIndicator />
             ) : (
@@ -113,25 +106,14 @@ export function AccountModal({ visible, onClose, account }: AccountModalProps) {
             )}
           </View>
 
-          <View className="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-200">
-            <Text className="text-sm font-semibold text-blue-900 mb-1">
-              💰 Need USDC?
-            </Text>
-            <Text className="text-xs text-blue-800">
-              Bridge USDC to Base or use a faucet to get test USDC
-            </Text>
-          </View>
-
           <TouchableOpacity
             onPress={onClose}
-            className="bg-gray-200 p-4 rounded-lg items-center"
-            activeOpacity={0.7}
-          >
-            <Text className="text-gray-700 font-semibold">Close</Text>
+            className="items-center rounded-lg bg-gray-200 p-4"
+            activeOpacity={0.7}>
+            <Text className="font-semibold text-gray-700">Close</Text>
           </TouchableOpacity>
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
   );
 }
-
